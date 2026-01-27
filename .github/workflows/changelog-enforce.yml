@@ -1,0 +1,19 @@
+name: Changelog Enforcement
+on:
+  pull_request:
+    branches: ["main"]
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for changelog update
+        run: |
+          set -e
+          CHANGED=$(git diff --name-only origin/main...HEAD | grep -vE '\.md$|^\.github/') || true
+          if [ -n "$CHANGED" ]; then
+            if ! git diff --name-only origin/main...HEAD | grep -q '^CHANGELOG.md$'; then
+              echo "CHANGELOG.md must be updated for user-visible changes." >&2
+              exit 1
+            fi
+          fi

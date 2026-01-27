@@ -1,0 +1,35 @@
+name: CI
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for package.json
+        id: pkg
+        run: |
+          if [ -f package.json ]; then echo "exists=true" >> $GITHUB_OUTPUT; else echo "exists=false" >> $GITHUB_OUTPUT; fi
+      - name: Setup Node.js
+        if: steps.pkg.outputs.exists == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install dependencies
+        if: steps.pkg.outputs.exists == 'true'
+        run: npm ci
+      - name: Run tests
+        if: steps.pkg.outputs.exists == 'true' && contains(fromJson(steps.pkg.outputs.exists), 'true') && (hashFiles('package.json') != '')
+        run: |
+          if npm run | grep -q " test"; then npm test; else echo "No test script"; fi
+      - name: Run lint
+        if: steps.pkg.outputs.exists == 'true'
+        run: |
+          if npm run | grep -q " lint"; then npm run lint; else echo "No lint script"; fi
+      - name: Run build
+        if: steps.pkg.outputs.exists == 'true'
+        run: |
+          if npm run | grep -q " build"; then npm run build; else echo "No build script"; fi
