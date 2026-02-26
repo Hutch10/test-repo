@@ -5,7 +5,7 @@ import { getDb } from '@/lib/db';
 export async function POST(req: Request) {
     try {
         if (!process.env.GOOGLE_GENAI_API_KEY) {
-            return NextResponse.json({ error: 'Gemini API Key is not configured.' }, { status: 500 });
+            return NextResponse.json({ error: 'Gemini API Key is not configured.' }, { status: 500 })
         }
 
         const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY });
