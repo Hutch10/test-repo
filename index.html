@@ -656,31 +656,34 @@ async function handleLogin(e){
   const pass=document.getElementById('loginPassword').value;
   const btn=document.getElementById('loginBtn');
   const err=document.getElementById('loginError');
+  
   err.style.display='none';
-  btn.innerHTML='<span class="spinner"></span>Signing in...'; btn.disabled=true;
-
-  if(DEMO_MODE){
-    await delay(1000);
-    btn.innerHTML='Log In'; btn.disabled=false;
-    closeModal(); setUserUI(email.split('@')[0]); showPage('paywall');
-    return;
-  }
+  btn.innerHTML='<span class="spinner"></span>Signing in...';
+  btn.disabled=true;
 
   try {
-    const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
-    btn.innerHTML='Log In'; btn.disabled=false;
-    if(error){ 
-      console.error('Login Error:', error.message);
-      err.textContent=error.message; 
-      err.style.display='block'; 
-      return; 
+    if(DEMO_MODE){
+      await delay(1000);
+      closeModal(); setUserUI(email.split('@')[0]); showPage('paywall');
+      return;
     }
-    closeModal(); await checkUserStatus(data.user);
+    
+    const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+    
+    if(error) throw new Error(error.message);
+    
+    console.log('Login successful:', data);
+    closeModal(); 
+    await checkUserStatus(data.user);
   } catch(e) {
-    console.error('Login Exception:', e);
-    btn.innerHTML='Log In'; btn.disabled=false;
-    err.textContent='Connection error. Please try again.';
+    console.error('Login error:', e.message);
+    err.textContent='Login failed: '+e.message;
     err.style.display='block';
+  } finally {
+    btn.innerHTML='Log In';
+    btn.disabled=false;
+  }
+}
   }
 }
 
