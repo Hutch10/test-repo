@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NOVA — Master Your Sound | Made for Penny</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #050810;
+    --surface: #0c1120;
+    --surface2: #111827;
+    --accent: #00e5ff;
+    --accent2: #a855f7;
+    --accent3: #f97316;
+    --text: #f0f4ff;
+    --muted: #6b7a99;
+    --border: rgba(255,255,255,0.07);
+    --danger: #ef4444;
+    --success: #22c55e;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* CURSOR */
+  .cursor {
+    position:fixed; width:12px; height:12px;
+    background:var(--accent); border-radius:50%;
+    pointer-events:none; z-index:9999;
+    transform:translate(-50%,-50%); mix-blend-mode:screen;
+  }
+  .cursor-ring {
+    position:fixed; width:36px; height:36px;
+    border:1.5px solid rgba(0,229,255,.5); border-radius:50%;
+    pointer-events:none; z-index:9998;
+    transform:translate(-50%,-50%);
+  }
+
+  /* NOISE */
+  body::before {
+    content:''; position:fixed; inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events:none; z-index:1; opacity:.4;
+  }
+
+  /* NAV */
+  nav {
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    padding:1.5rem 4rem;
+    display:flex; align-items:center; justify-content:space-between;
+    background:linear-gradient(to bottom,rgba(5,8,16,.95),transparent);
+    backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--border);
+  }
+  .logo {
+    font-family:'Syne',sans-serif; font-size:1.6rem; font-weight:800;
+    background:linear-gradient(135deg,#fff 30%,var(--accent));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; cursor:none;
+  }
+  .logo span { -webkit-text-fill-color:var(--accent); }
+  .nav-links { display:flex; gap:2.5rem; list-style:none; }
+  .nav-links a { font-size:.875rem; font-weight:500; color:var(--muted); text-decoration:none; letter-spacing:.05em; text-transform:uppercase; transition:color .2s; }
+  .nav-links a:hover { color:var(--text); }
+  .nav-right { display:flex; gap:.75rem; align-items:center; }
+  .btn-nav-ghost {
+    background:transparent; color:var(--text); font-weight:500;
+    font-size:.875rem; padding:.5rem 1.2rem; border-radius:100px;
+    border:1px solid var(--border); cursor:none; transition:border-color .2s; text-decoration:none;
+  }
+  .btn-nav-ghost:hover { border-color:rgba(255,255,255,.3); }
+  .btn-nav-primary {
+    background:var(--accent); color:#000; font-weight:700;
+    font-size:.875rem; padding:.55rem 1.4rem; border-radius:100px;
+    border:none; cursor:none; transition:box-shadow .3s, transform .2s; text-decoration:none;
+  }
+  .btn-nav-primary:hover { box-shadow:0 0 20px rgba(0,229,255,.5); transform:translateY(-1px); }
+
+  /* PAGE SYSTEM */
+  .page { display:none; }
+  .page.active { display:block; }
+
+  /* HERO */
+  .hero {
+    min-height:100vh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    text-align:center; padding:8rem 2rem 4rem; position:relative; overflow:hidden;
+  }
+  .orb { position:absolute; border-radius:50%; filter:blur(80px); opacity:.18; animation:drift 12s ease-in-out infinite; }
+  .orb1 { width:600px;height:600px;background:var(--accent2);top:-200px;left:-200px; }
+  .orb2 { width:500px;height:500px;background:var(--accent);bottom:-150px;right:-100px;animation-delay:-4s; }
+  .orb3 { width:400px;height:400px;background:var(--accent3);top:30%;left:50%;transform:translateX(-50%);animation-delay:-8s; }
+  @keyframes drift {
+    0%,100%{transform:translate(0,0) scale(1)}
+    33%{transform:translate(30px,-20px) scale(1.05)}
+    66%{transform:translate(-20px,30px) scale(.95)}
+  }
+  .waveform { position:absolute; bottom:0; left:0; right:0; height:120px; display:flex; align-items:flex-end; justify-content:center; gap:3px; padding:0 2rem; overflow:hidden; }
+  .waveform-bar { width:3px; border-radius:2px; background:linear-gradient(to top,var(--accent),transparent); animation:wave 1.4s ease-in-out infinite; opacity:.4; }
+  @keyframes wave { 0%,100%{transform:scaleY(.3)} 50%{transform:scaleY(1)} }
+  .hero-tag {
+    display:inline-flex; align-items:center; gap:.5rem;
+    background:rgba(0,229,255,.08); border:1px solid rgba(0,229,255,.25);
+    color:var(--accent); font-size:.78rem; font-weight:600; letter-spacing:.12em;
+    text-transform:uppercase; padding:.4rem 1rem; border-radius:100px; margin-bottom:2rem;
+    animation:fadeUp .6s ease both;
+  }
+  .tag-dot { width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 2s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+  .hero h1 {
+    font-family:'Syne',sans-serif; font-size:clamp(3.5rem,9vw,8rem);
+    font-weight:800; line-height:.95; letter-spacing:-.04em; margin-bottom:1.5rem;
+    animation:fadeUp .6s .1s ease both;
+  }
+  .hero h1 em { font-style:normal; background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .hero p { font-size:clamp(1.1rem,2vw,1.35rem); color:var(--muted); max-width:560px; line-height:1.65; margin-bottom:3rem; font-weight:300; animation:fadeUp .6s .2s ease both; }
+  .hero-actions { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; animation:fadeUp .6s .3s ease both; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+  .btn-primary {
+    background:linear-gradient(135deg,var(--accent),#0090a8); color:#000;
+    font-weight:700; font-size:1rem; padding:.9rem 2.2rem; border-radius:100px;
+    text-decoration:none; border:none; cursor:none; transition:transform .2s,box-shadow .3s;
+  }
+  .btn-primary:hover { transform:translateY(-2px); box-shadow:0 12px 40px rgba(0,229,255,.4); }
+  .btn-ghost {
+    background:transparent; color:var(--text); font-weight:500; font-size:1rem;
+    padding:.9rem 2.2rem; border-radius:100px; text-decoration:none;
+    border:1px solid var(--border); cursor:none; transition:border-color .2s, background .2s;
+  }
+  .btn-ghost:hover { border-color:rgba(255,255,255,.3); background:rgba(255,255,255,.05); }
+
+  /* STATS */
+  .stats { padding:4rem; display:flex; justify-content:center; gap:6rem; border-top:1px solid var(--border); border-bottom:1px solid var(--border); background:var(--surface); flex-wrap:wrap; }
+  .stat-item { text-align:center; }
+  .stat-number { font-family:'Syne',sans-serif; font-size:3rem; font-weight:800; background:linear-gradient(135deg,#fff,var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; display:block; }
+  .stat-label { color:var(--muted); font-size:.85rem; letter-spacing:.1em; text-transform:uppercase; margin-top:.3rem; }
+
+  /* SECTION */
+  .section-header { text-align:center; margin-bottom:4rem; }
+  .section-eyebrow { font-size:.75rem; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--accent); margin-bottom:1rem; display:block; }
+  .section-title { font-family:'Syne',sans-serif; font-size:clamp(2rem,4vw,3.2rem); font-weight:800; letter-spacing:-.03em; line-height:1.1; }
+  .section-sub { color:var(--muted); font-size:1.05rem; margin-top:1rem; max-width:500px; margin-left:auto; margin-right:auto; line-height:1.6; font-weight:300; }
+
+  /* FEATURES */
+  .features { padding:8rem 4rem; max-width:1200px; margin:0 auto; }
+  .features-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.5px; background:var(--border); border:1px solid var(--border); border-radius:24px; overflow:hidden; }
+  .feature-card { background:var(--surface); padding:3rem 2.5rem; transition:background .3s; position:relative; overflow:hidden; }
+  .feature-card::before { content:''; position:absolute; top:0;left:0;right:0; height:1px; background:linear-gradient(90deg,transparent,var(--accent),transparent); opacity:0; transition:opacity .4s; }
+  .feature-card:hover { background:var(--surface2); }
+  .feature-card:hover::before { opacity:1; }
+  .feature-icon { width:52px;height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:1.5rem; margin-bottom:1.5rem; }
+  .feature-icon.cyan { background:rgba(0,229,255,.1); border:1px solid rgba(0,229,255,.2); }
+  .feature-icon.purple { background:rgba(168,85,247,.1); border:1px solid rgba(168,85,247,.2); }
+  .feature-icon.orange { background:rgba(249,115,22,.1); border:1px solid rgba(249,115,22,.2); }
+  .feature-card h3 { font-family:'Syne',sans-serif; font-size:1.25rem; font-weight:700; margin-bottom:.75rem; }
+  .feature-card p { color:var(--muted); font-size:.95rem; line-height:1.65; font-weight:300; }
+
+  /* PRICING */
+  .pricing { padding:8rem 4rem; background:var(--surface); }
+  .pricing-inner { max-width:1100px; margin:0 auto; }
+  .pricing-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; margin-top:4rem; }
+  .pricing-card { background:var(--bg); border:1px solid var(--border); border-radius:24px; padding:2.5rem; position:relative; transition:transform .3s, border-color .3s; }
+  .pricing-card:hover { transform:translateY(-6px); }
+  .pricing-card.featured { border-color:rgba(0,229,255,.4); background:linear-gradient(135deg,rgba(0,229,255,.05),rgba(168,85,247,.05)); }
+  .pricing-card.featured::before { content:'MOST POPULAR'; position:absolute; top:-13px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#000; font-size:.65rem; font-weight:800; letter-spacing:.15em; padding:.35rem 1rem; border-radius:100px; }
+  .plan-name { font-family:'Syne',sans-serif; font-size:.8rem; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:.5rem; }
+  .plan-price { font-family:'Syne',sans-serif; font-size:3rem; font-weight:800; margin:.75rem 0; }
+  .plan-price sup { font-size:1.2rem; vertical-align:super; color:var(--muted); }
+  .plan-period { font-size:.85rem; color:var(--muted); margin-bottom:1.5rem; }
+  .plan-features { list-style:none; margin:1.5rem 0 2rem; }
+  .plan-features li { font-size:.9rem; color:var(--muted); padding:.5rem 0; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:.6rem; }
+  .plan-features li:last-child { border-bottom:none; }
+  .plan-features li::before { content:'✓'; color:var(--accent); font-weight:700; }
+  .plan-btn { display:block; text-align:center; padding:.85rem; border-radius:100px; font-weight:600; font-size:.95rem; text-decoration:none; cursor:none; border:none; transition:all .2s; width:100%; font-family:'DM Sans',sans-serif; }
+  .plan-btn-outline { border:1px solid var(--border)!important; color:var(--text); background:transparent; }
+  .plan-btn-outline:hover { border-color:var(--accent)!important; color:var(--accent); }
+  .plan-btn-filled { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#000; }
+  .plan-btn-filled:hover { box-shadow:0 8px 32px rgba(0,229,255,.35); }
+
+  /* CTA */
+  .cta-strip { margin:0 4rem 8rem; background:linear-gradient(135deg,rgba(0,229,255,.08),rgba(168,85,247,.08)); border:1px solid rgba(0,229,255,.2); border-radius:28px; padding:5rem 4rem; text-align:center; position:relative; overflow:hidden; }
+  .cta-strip::before { content:''; position:absolute; top:-50%; left:50%; transform:translateX(-50%); width:600px;height:300px; background:radial-gradient(ellipse,rgba(0,229,255,.1),transparent 70%); pointer-events:none; }
+  .cta-strip h2 { font-family:'Syne',sans-serif; font-size:clamp(2rem,4vw,3rem); font-weight:800; letter-spacing:-.03em; margin-bottom:1rem; }
+  .cta-strip p { color:var(--muted); font-size:1.05rem; margin-bottom:2.5rem; font-weight:300; }
+
+  /* FOOTER */
+  footer { background:var(--surface); border-top:1px solid var(--border); padding:4rem; display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:3rem; }
+  .footer-brand p { color:var(--muted); font-size:.9rem; margin-top:1rem; line-height:1.6; max-width:260px; font-weight:300; }
+  .footer-col h5 { font-family:'Syne',sans-serif; font-weight:700; font-size:.875rem; margin-bottom:1.25rem; letter-spacing:.05em; }
+  .footer-col a { display:block; color:var(--muted); font-size:.875rem; text-decoration:none; margin-bottom:.6rem; transition:color .2s; cursor:none; }
+  .footer-col a:hover { color:var(--text); }
+  .footer-bottom { background:var(--surface); border-top:1px solid var(--border); padding:1.5rem 4rem; display:flex; justify-content:space-between; align-items:center; font-size:.8rem; color:var(--muted); }
+
+  /* AUTH MODAL */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(8px); z-index:500; align-items:center; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:24px; padding:3rem; width:100%; max-width:440px; position:relative; animation:fadeUp .3s ease; }
+  .modal-close { position:absolute; top:1rem; right:1.25rem; background:none; border:none; color:var(--muted); font-size:1.4rem; cursor:none; transition:color .2s; }
+  .modal-close:hover { color:var(--text); }
+  .modal h2 { font-family:'Syne',sans-serif; font-size:1.8rem; font-weight:800; margin-bottom:.5rem; }
+  .modal p.modal-sub { color:var(--muted); font-size:.95rem; margin-bottom:2rem; }
+  .modal-tabs { display:flex; gap:0; margin-bottom:2rem; background:var(--bg); border-radius:100px; padding:.25rem; }
+  .modal-tab { flex:1; padding:.55rem; text-align:center; border-radius:100px; font-size:.875rem; font-weight:600; cursor:none; border:none; background:transparent; color:var(--muted); transition:all .2s; font-family:'DM Sans',sans-serif; }
+  .modal-tab.active { background:var(--accent); color:#000; }
+  .form-group { margin-bottom:1.25rem; }
+  .form-group label { display:block; font-size:.8rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:.5rem; }
+  .form-group input { width:100%; padding:.85rem 1rem; background:var(--bg); border:1px solid var(--border); border-radius:12px; color:var(--text); font-size:.95rem; font-family:'DM Sans',sans-serif; outline:none; transition:border-color .2s; }
+  .form-group input:focus { border-color:var(--accent); }
+  .form-error { color:var(--danger); font-size:.85rem; margin-bottom:.75rem; display:none; }
+  .form-success { color:var(--success); font-size:.85rem; margin-bottom:.75rem; display:none; }
+  .form-submit { width:100%; padding:.9rem; border-radius:100px; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#000; font-weight:700; font-size:1rem; border:none; cursor:none; transition:box-shadow .3s, transform .2s; margin-top:.5rem; font-family:'DM Sans',sans-serif; }
+  .form-submit:hover { box-shadow:0 8px 32px rgba(0,229,255,.35); transform:translateY(-1px); }
+
+  /* PAYWALL PAGE */
+  .paywall-page { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:8rem 2rem; text-align:center; position:relative; overflow:hidden; }
+  .paywall-content { max-width:580px; z-index:2; }
+  .lock-icon { width:80px;height:80px; background:rgba(0,229,255,.1); border:1px solid rgba(0,229,255,.3); border-radius:24px; display:flex; align-items:center; justify-content:center; font-size:2.5rem; margin:0 auto 2rem; }
+  .paywall-page h2 { font-family:'Syne',sans-serif; font-size:2.5rem; font-weight:800; margin-bottom:1rem; }
+  .paywall-page > div > p { color:var(--muted); font-size:1.05rem; line-height:1.65; margin-bottom:2.5rem; }
+  .paywall-plans { display:grid; grid-template-columns:1fr 1fr; gap:1rem; text-align:left; margin-bottom:2rem; }
+  .paywall-plan { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:1.5rem; cursor:none; transition:border-color .2s; }
+  .paywall-plan:hover { border-color:rgba(0,229,255,.3); }
+  .paywall-plan.selected { border-color:var(--accent); background:rgba(0,229,255,.05); }
+  .paywall-plan-name { font-family:'Syne',sans-serif; font-weight:700; font-size:.85rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:.4rem; }
+  .paywall-plan-price { font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; margin:.4rem 0 .25rem; }
+  .paywall-plan-desc { font-size:.8rem; color:var(--muted); }
+
+  /* DASHBOARD */
+  .dashboard-page { padding:8rem 4rem 4rem; max-width:1200px; margin:0 auto; }
+  .dash-welcome { font-family:'Syne',sans-serif; font-size:2.5rem; font-weight:800; }
+  .dash-welcome span { background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .dash-sub { color:var(--muted); margin-top:.5rem; font-size:1rem; }
+  .dash-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:1.5rem; margin:2.5rem 0 3rem; }
+  .dash-stat { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:1.75rem; }
+  .dash-stat-label { font-size:.75rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:.75rem; }
+  .dash-stat-value { font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; }
+  .dash-stat-value.cyan { color:var(--accent); }
+  .dash-stat-value.purple { color:var(--accent2); }
+  .dash-stat-value.green { color:var(--success); }
+  .dash-grid { display:grid; grid-template-columns:2fr 1fr; gap:1.5rem; }
+  .dash-card { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:2rem; }
+  .dash-card h3 { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; margin-bottom:1.5rem; }
+  .dash-eq { display:flex; align-items:flex-end; gap:3px; height:100px; }
+  .dash-eq-bar { flex:1; border-radius:2px 2px 0 0; min-height:4px; animation:eqAnim 2s ease-in-out infinite; }
+  @keyframes eqAnim { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(.4)} }
+  .plan-badge { display:inline-flex; align-items:center; gap:.4rem; background:rgba(0,229,255,.1); border:1px solid rgba(0,229,255,.3); color:var(--accent); font-size:.75rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:.3rem .8rem; border-radius:100px; }
+  .module-list-dash { list-style:none; }
+  .module-list-dash li { display:flex; align-items:center; justify-content:space-between; padding:.75rem 0; border-bottom:1px solid var(--border); font-size:.9rem; }
+  .module-list-dash li:last-child { border-bottom:none; }
+  .module-dot { width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:.75rem; flex-shrink:0; }
+  .module-status { font-size:.75rem; color:var(--success); font-weight:600; }
+  .sign-out-btn { background:transparent; border:1px solid var(--border); color:var(--muted); padding:.6rem 1.4rem; border-radius:100px; cursor:none; font-size:.875rem; font-family:'DM Sans',sans-serif; transition:border-color .2s, color .2s; }
+  .sign-out-btn:hover { border-color:var(--danger); color:var(--danger); }
+
+  /* SPINNER */
+  .spinner { width:18px;height:18px; border:2px solid rgba(0,0,0,.3); border-top-color:#000; border-radius:50%; animation:spin .6s linear infinite; display:inline-block; vertical-align:middle; margin-right:.4rem; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:2rem; right:2rem; z-index:1000; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:1rem 1.5rem; font-size:.9rem; transform:translateY(100px); opacity:0; transition:transform .3s, opacity .3s; pointer-events:none; max-width:320px; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.success { border-color:rgba(34,197,94,.4); color:var(--success); }
+  .toast.error { border-color:rgba(239,68,68,.4); color:var(--danger); }
+
+  /* REVEAL */
+  .reveal { opacity:0; transform:translateY(30px); transition:opacity .7s ease, transform .7s ease; }
+  .reveal.visible { opacity:1; transform:translateY(0); }
+
+  /* DROP ZONE */
+  .drop-zone { border:2px dashed var(--border); border-radius:16px; padding:3rem; text-align:center; margin-bottom:1.5rem; transition:border-color .2s; }
+  .drop-zone:hover { border-color:rgba(0,229,255,.4); }
+
+  @media(max-width:900px) {
+    nav { padding:1.5rem 2rem; }
+    .nav-links { display:none; }
+    .features-grid, .pricing-cards, .paywall-plans, .dash-stats { grid-template-columns:1fr; }
+    .dash-grid { grid-template-columns:1fr; }
+    footer { grid-template-columns:1fr 1fr; }
+    .stats { gap:2rem; padding:3rem 2rem; }
+    .cta-strip { margin:0 1.5rem 4rem; padding:3rem 1.5rem; }
+    .features, .pricing { padding:5rem 1.5rem; }
+    .dashboard-page { padding:6rem 1.5rem 3rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+<div class="toast" id="toast"></div>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <div class="logo" onclick="showPage('landing')">NOVA<span>.</span></div>
+  <ul class="nav-links">
+    <li><a href="#" onclick="event.preventDefault();document.getElementById('features-section')?.scrollIntoView({behavior:'smooth'})">Features</a></li>
+    <li><a href="#" onclick="event.preventDefault();document.getElementById('pricing-section')?.scrollIntoView({behavior:'smooth'})">Pricing</a></li>
+  </ul>
+  <div class="nav-right" id="navRight">
+    <a href="#" class="btn-nav-ghost" onclick="event.preventDefault();openModal('login')">Log In</a>
+    <a href="#" class="btn-nav-primary" onclick="event.preventDefault();openModal('signup')">Get Started</a>
+  </div>
+</nav>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2 id="modalTitle">Welcome back</h2>
+    <p class="modal-sub" id="modalSub">Sign in to access your NOVA studio.</p>
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tabLogin" onclick="switchTab('login')">Log In</button>
+      <button class="modal-tab" id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
+    </div>
+    <!-- Login -->
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="form-group"><label>Email</label><input type="email" id="loginEmail" placeholder="you@example.com" required /></div>
+      <div class="form-group"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••" required /></div>
+      <div class="form-error" id="loginError"></div>
+      <button type="submit" class="form-submit" id="loginBtn">Log In</button>
+    </form>
+    <!-- Signup -->
+    <form id="signupForm" style="display:none" onsubmit="handleSignup(event)">
+      <div class="form-group"><label>Full Name</label><input type="text" id="signupName" placeholder="Your name" required /></div>
+      <div class="form-group"><label>Email</label><input type="email" id="signupEmail" placeholder="you@example.com" required /></div>
+      <div class="form-group"><label>Password</label><input type="password" id="signupPassword" placeholder="Min. 8 characters" minlength="8" required /></div>
+      <div class="form-error" id="signupError"></div>
+      <div class="form-success" id="signupSuccess"></div>
+      <button type="submit" class="form-submit" id="signupBtn">Create Account</button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════
+     PAGE: LANDING
+════════════════════════════════ -->
+<div class="page active" id="page-landing">
+  <section class="hero">
+    <div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+    <div class="hero-tag"><span class="tag-dot"></span>🎂 Happy Birthday, Penny!</div>
+    <h1>Penny's<br/><em>Sound</em> Studio —<br/>Master It All</h1>
+    <p>This one's for you, Penny. 🎶 Professional-grade audio mastering powered by AI — built to take your music from bedroom to the world stage.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="openModal('signup')">Start Free Trial</button>
+      <button class="btn-ghost" onclick="document.getElementById('features-section').scrollIntoView({behavior:'smooth'})">Explore Features ↓</button>
+    </div>
+    <div class="waveform" id="waveform"></div>
+  </section>
+
+  <div class="stats reveal">
+    <div class="stat-item"><span class="stat-number">5M+</span><span class="stat-label">Tracks Mastered</span></div>
+    <div class="stat-item"><span class="stat-number">200K+</span><span class="stat-label">Active Producers</span></div>
+    <div class="stat-item"><span class="stat-number">20</span><span class="stat-label">Pro Modules</span></div>
+    <div class="stat-item"><span class="stat-number">4.9★</span><span class="stat-label">Artist Rating</span></div>
+  </div>
+
+  <section class="features reveal" id="features-section">
+    <div class="section-header">
+      <span class="section-eyebrow">Why Nova</span>
+      <h2 class="section-title">Everything you need.<br/>Nothing you don't.</h2>
+      <p class="section-sub">Built for producers who demand more — cleaner workflow, smarter tools, louder results.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card"><div class="feature-icon cyan">🎛️</div><h3>AI Master Assistant</h3><p>Feed it your track, tell it your target. Nova's AI builds a custom signal chain in seconds — matched to your genre and vision.</p></div>
+      <div class="feature-card"><div class="feature-icon purple">🔮</div><h3>Stem-Aware Processing</h3><p>Isolate vocals, drums, bass, and instruments within your master. Process each element independently without leaving the mastering stage.</p></div>
+      <div class="feature-card"><div class="feature-icon orange">⚡</div><h3>One-Click Loudness</h3><p>Hit Spotify, Apple Music, and YouTube loudness targets automatically. Preserves dynamics while maximizing punch and presence.</p></div>
+      <div class="feature-card"><div class="feature-icon purple">📊</div><h3>Real-Time Metering</h3><p>Broadcast-spec LUFS, true peak, dynamic range, and stereo width meters updating live as you tweak your chain.</p></div>
+      <div class="feature-card"><div class="feature-icon cyan">🎚️</div><h3>Linear Phase EQ</h3><p>18 bands of surgical precision with zero phase distortion. AI-assisted spectral repair finds and fixes problems automatically.</p></div>
+      <div class="feature-card"><div class="feature-icon orange">🌊</div><h3>Codec Preview</h3><p>Hear exactly how your master sounds after Spotify and Apple compression — before you ever hit release.</p></div>
+    </div>
+  </section>
+
+  <section class="pricing reveal" id="pricing-section">
+    <div class="pricing-inner">
+      <div class="section-header">
+        <span class="section-eyebrow">Plans</span>
+        <h2 class="section-title">Start free. Scale when ready.</h2>
+        <p class="section-sub">Monthly subscription or one-time purchase — your choice. Cancel anytime, no hassle.</p>
+      </div>
+      <div class="pricing-cards">
+        <div class="pricing-card">
+          <div class="plan-name">Elements</div>
+          <div class="plan-price"><sup>$</sup>9<span style="font-size:1.1rem;color:var(--muted)">/mo</span></div>
+          <div class="plan-period">or $49 one-time</div>
+          <ul class="plan-features">
+            <li>8 Core Modules</li><li>Master Assistant (Basic)</li><li>Streaming Loudness Presets</li><li>1 Year of Updates</li>
+          </ul>
+          <button class="plan-btn plan-btn-outline" onclick="openModal('signup')">Get Elements</button>
+        </div>
+        <div class="pricing-card featured">
+          <div class="plan-name">Standard</div>
+          <div class="plan-price"><sup>$</sup>19<span style="font-size:1.1rem;color:var(--muted)">/mo</span></div>
+          <div class="plan-period">or $199 one-time</div>
+          <ul class="plan-features">
+            <li>16 Modules</li><li>AI Master Assistant</li><li>Stem Processing</li><li>Codec Preview</li><li>Lifetime Updates</li>
+          </ul>
+          <button class="plan-btn plan-btn-filled" onclick="openModal('signup')">Get Standard</button>
+        </div>
+        <div class="pricing-card">
+          <div class="plan-name">Advanced</div>
+          <div class="plan-price"><sup>$</sup>39<span style="font-size:1.1rem;color:var(--muted)">/mo</span></div>
+          <div class="plan-period">or $349 one-time</div>
+          <ul class="plan-features">
+            <li>All 20 Modules</li><li>AI Master Assistant Pro</li><li>Mid/Side + Stem Processing</li><li>API + DAW Plugin Access</li><li>Priority Support</li>
+          </ul>
+          <button class="plan-btn plan-btn-outline" onclick="openModal('signup')">Get Advanced</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="cta-strip reveal">
+    <h2>Happy Birthday,<br/><em style="background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Penny! 🎂</em></h2>
+    <p>Your best master starts today. 10-day free trial. No credit card required.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+      <button class="btn-primary" onclick="openModal('signup')">Start Free Trial</button>
+      <button class="btn-ghost" onclick="openModal('login')">Already have an account</button>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-brand">
+      <div class="logo">NOVA<span>.</span></div>
+      <p>Made with ❤️ for Penny. Professional audio mastering for the modern producer.</p>
+    </div>
+    <div class="footer-col"><h5>Product</h5><a href="#">Features</a><a href="#">Modules</a><a href="#">Pricing</a></div>
+    <div class="footer-col"><h5>Learn</h5><a href="#">Tutorials</a><a href="#">Blog</a><a href="#">Community</a></div>
+    <div class="footer-col"><h5>Company</h5><a href="#">About</a><a href="#">Contact</a><a href="#">Privacy</a></div>
+  </footer>
+  <div class="footer-bottom">
+    <span>© 2025 Nova Audio — Made with ❤️ for Penny 🎂</span>
+    <span>Privacy · Terms</span>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════
+     PAGE: PAYWALL
+════════════════════════════════ -->
+<div class="page" id="page-paywall">
+  <div class="paywall-page">
+    <div class="orb orb1" style="opacity:.1"></div>
+    <div class="orb orb2" style="opacity:.1"></div>
+    <div class="paywall-content">
+      <div class="lock-icon">🔒</div>
+      <h2>Choose Your Plan</h2>
+      <p>You're in! Pick a plan to unlock NOVA's full mastering suite. Start with a 10-day free trial — no credit card needed.</p>
+      <div class="paywall-plans">
+        <div class="paywall-plan selected" id="planMonthly" onclick="selectPlan('monthly')">
+          <div class="paywall-plan-name">Monthly</div>
+          <div class="paywall-plan-price">$19<span style="font-size:1rem;color:var(--muted)">/mo</span></div>
+          <div class="paywall-plan-desc">Cancel anytime. 10-day free trial.</div>
+        </div>
+        <div class="paywall-plan" id="planOneTime" onclick="selectPlan('onetime')">
+          <div class="paywall-plan-name">One-Time</div>
+          <div class="paywall-plan-price">$199</div>
+          <div class="paywall-plan-desc">Pay once. Lifetime access + updates.</div>
+        </div>
+      </div>
+      <button class="btn-primary" style="width:100%;padding:1rem;font-size:1.05rem;border:none;" onclick="handleCheckout()">Continue to Checkout →</button>
+      <p style="font-size:.8rem;color:var(--muted);margin-top:1rem;">Secured by Stripe. Cancel anytime. No hidden fees.</p>
+      <br/>
+      <button onclick="handleSignOut()" style="background:none;border:none;color:var(--muted);font-size:.85rem;cursor:none;text-decoration:underline;font-family:'DM Sans',sans-serif;">Sign out</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════
+     PAGE: DASHBOARD
+════════════════════════════════ -->
+<div class="page" id="page-dashboard">
+  <div class="dashboard-page">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:2rem;">
+      <div>
+        <div class="dash-welcome">Welcome back, <span id="dashName">Penny</span> 👋</div>
+        <div class="dash-sub">Your studio is ready. Let's make something great today.</div>
+      </div>
+      <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+        <div class="plan-badge">✦ <span id="dashPlan">Standard Plan</span></div>
+        <button class="sign-out-btn" onclick="handleSignOut()">Sign Out</button>
+      </div>
+    </div>
+
+    <div class="dash-stats">
+      <div class="dash-stat"><div class="dash-stat-label">Tracks Mastered</div><div class="dash-stat-value cyan">24</div></div>
+      <div class="dash-stat"><div class="dash-stat-label">Hours Saved</div><div class="dash-stat-value purple">8.5h</div></div>
+      <div class="dash-stat"><div class="dash-stat-label">Plan Status</div><div class="dash-stat-value green">Active ✓</div></div>
+      <div class="dash-stat"><div class="dash-stat-label">Next Billing</div><div class="dash-stat-value" style="font-size:1.2rem" id="nextBilling">—</div></div>
+    </div>
+
+    <div class="dash-grid">
+      <!-- Master tool -->
+      <div class="dash-card">
+        <h3>🎛️ Master Assistant</h3>
+        <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;">Drop a track and Nova's AI builds your mastering chain in seconds.</p>
+        <div class="drop-zone" id="dropZone"
+          ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+          ondragleave="this.style.borderColor=''"
+          ondrop="handleDrop(event)">
+          <div style="font-size:2rem;margin-bottom:.75rem;">🎵</div>
+          <p style="color:var(--muted);font-size:.9rem;">Drag & drop your audio file here<br/><span style="font-size:.8rem">MP3, WAV, FLAC, AIFF supported</span></p>
+          <input type="file" id="audioInput" accept="audio/*" style="display:none" onchange="handleFileSelect(event)" />
+          <button class="btn-ghost" style="margin-top:1rem;padding:.6rem 1.5rem;font-size:.875rem;" onclick="document.getElementById('audioInput').click()">Browse Files</button>
+        </div>
+        <div style="background:#080e1c;border-radius:12px;padding:1.25rem;border:1px solid var(--border);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <span style="font-size:.8rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;">EQ Spectrum</span>
+            <span style="font-size:.8rem;color:var(--accent)" id="eqStatus">Ready</span>
+          </div>
+          <div class="dash-eq" id="dashEQ"></div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div style="display:flex;flex-direction:column;gap:1.5rem;">
+        <div class="dash-card">
+          <h3>⚡ Active Modules</h3>
+          <ul class="module-list-dash">
+            <li><span style="display:flex;align-items:center;"><span class="module-dot"></span>EQ — Spectral Shaper</span><span class="module-status">Active</span></li>
+            <li><span style="display:flex;align-items:center;"><span class="module-dot"></span>Multiband Compressor</span><span class="module-status">Active</span></li>
+            <li><span style="display:flex;align-items:center;"><span class="module-dot" style="background:var(--accent2)"></span>Stereo Imager</span><span class="module-status" style="color:var(--accent2)">Active</span></li>
+            <li><span style="display:flex;align-items:center;"><span class="module-dot" style="background:var(--accent3)"></span>Maximizer</span><span class="module-status" style="color:var(--accent3)">Active</span></li>
+            <li><span style="display:flex;align-items:center;"><span class="module-dot"></span>Codec Preview</span><span class="module-status">Active</span></li>
+          </ul>
+        </div>
+        <div class="dash-card">
+          <h3>💳 Your Plan</h3>
+          <div class="plan-badge" style="margin-bottom:1rem;">✦ <span id="dashPlan2">Standard</span></div>
+          <p style="color:var(--muted);font-size:.875rem;line-height:1.6;margin-bottom:1.5rem;">Full access to 16 modules, AI Master Assistant, stem processing, and lifetime updates.</p>
+          <button class="plan-btn plan-btn-filled" style="font-size:.875rem;" onclick="showToast('Upgrade options coming soon! 🚀','success')">Upgrade to Advanced →</button>
+          <button class="plan-btn plan-btn-outline" style="margin-top:.75rem;font-size:.875rem;" onclick="showToast('Billing portal coming soon!','success')">Manage Billing</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ═══════════════════════════════════════════
+// CONFIG — Penny fills these in after setup
+// ═══════════════════════════════════════════
+const SUPABASE_URL     = 'YOUR_SUPABASE_URL';       // e.g. https://xxxx.supabase.co
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // from Supabase dashboard
+const STRIPE_MONTHLY_LINK = 'YOUR_STRIPE_MONTHLY_PAYMENT_LINK'; // Stripe payment link URL
+const STRIPE_ONETIME_LINK = 'YOUR_STRIPE_ONETIME_PAYMENT_LINK'; // Stripe payment link URL
+
+const DEMO_MODE = SUPABASE_URL === 'YOUR_SUPABASE_URL';
+
+// Init Supabase
+let sb = null;
+try {
+  if (!DEMO_MODE) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch(e) { console.warn('Supabase not connected — running in demo mode'); }
+
+// ─── CURSOR ───
+const curEl = document.getElementById('cursor');
+const ringEl = document.getElementById('cursorRing');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove', e => {
+  mx=e.clientX; my=e.clientY;
+  curEl.style.left=mx+'px'; curEl.style.top=my+'px';
+});
+(function loop(){ rx+=(mx-rx)*.12; ry+=(my-ry)*.12; ringEl.style.left=rx+'px'; ringEl.style.top=ry+'px'; requestAnimationFrame(loop); })();
+
+// ─── WAVEFORM ───
+const wfEl = document.getElementById('waveform');
+for(let i=0;i<80;i++){
+  const b=document.createElement('div'); b.className='waveform-bar';
+  b.style.height=(Math.random()*80+10)+'px';
+  b.style.animationDelay=(Math.random()*1.4)+'s';
+  b.style.animationDuration=(1+Math.random()*.8)+'s';
+  b.style.opacity=.15+Math.random()*.35;
+  wfEl.appendChild(b);
+}
+
+// ─── DASHBOARD EQ ───
+const eqEl = document.getElementById('dashEQ');
+const eqColors=['#00e5ff','#0abde3','#00cec9','#6c5ce7','#a855f7','#e17055','#f97316'];
+for(let i=0;i<32;i++){
+  const b=document.createElement('div'); b.className='dash-eq-bar';
+  b.style.height=(20+Math.sin(i/32*Math.PI*2)*40+Math.random()*30)+'px';
+  b.style.animationDelay=(i*.06)+'s';
+  b.style.animationDuration=(.8+Math.random()*.6)+'s';
+  b.style.background=`linear-gradient(to top,${eqColors[i%eqColors.length]},transparent)`;
+  eqEl.appendChild(b);
+}
+
+// ─── SCROLL REVEAL ───
+const ro=new IntersectionObserver(es=>es.forEach((e,i)=>{ if(e.isIntersecting) setTimeout(()=>e.target.classList.add('visible'),i*80); },{threshold:.1}));
+document.querySelectorAll('.reveal').forEach(el=>ro.observe(el));
+
+// ─── PAGES ───
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pg=document.getElementById('page-'+name);
+  if(pg){ pg.classList.add('active'); window.scrollTo(0,0); }
+}
+
+// ─── MODAL ───
+let currentTab='login';
+function openModal(tab='login'){ document.getElementById('authModal').classList.add('open'); switchTab(tab); }
+function closeModal(){ document.getElementById('authModal').classList.remove('open'); }
+function switchTab(tab){
+  currentTab=tab;
+  document.getElementById('loginForm').style.display=tab==='login'?'block':'none';
+  document.getElementById('signupForm').style.display=tab==='signup'?'block':'none';
+  document.getElementById('tabLogin').classList.toggle('active',tab==='login');
+  document.getElementById('tabSignup').classList.toggle('active',tab==='signup');
+  document.getElementById('modalTitle').textContent=tab==='login'?'Welcome back':'Create account';
+  document.getElementById('modalSub').textContent=tab==='login'?'Sign in to access your NOVA studio.':'Join thousands of producers using NOVA.';
+}
+document.getElementById('authModal').addEventListener('click',function(e){ if(e.target===this) closeModal(); });
+
+// ─── SIGN UP ───
+async function handleSignup(e){
+  e.preventDefault();
+  const name=document.getElementById('signupName').value;
+  const email=document.getElementById('signupEmail').value;
+  const pass=document.getElementById('signupPassword').value;
+  const btn=document.getElementById('signupBtn');
+  const err=document.getElementById('signupError');
+  const suc=document.getElementById('signupSuccess');
+  err.style.display='none'; suc.style.display='none';
+  btn.innerHTML='<span class="spinner"></span>Creating account...'; btn.disabled=true;
+
+  if(DEMO_MODE){
+    await delay(1000);
+    btn.innerHTML='Create Account'; btn.disabled=false;
+    closeModal(); setUserUI(name||email.split('@')[0]); showPage('paywall');
+    return;
+  }
+  const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name}}});
+  btn.innerHTML='Create Account'; btn.disabled=false;
+  if(error){ err.textContent=error.message; err.style.display='block'; return; }
+  suc.textContent='Account created! Check your email to confirm, then log in.';
+  suc.style.display='block';
+}
+
+// ─── LOG IN ───
+async function handleLogin(e){
+  e.preventDefault();
+  const email=document.getElementById('loginEmail').value;
+  const pass=document.getElementById('loginPassword').value;
+  const btn=document.getElementById('loginBtn');
+  const err=document.getElementById('loginError');
+  err.style.display='none';
+  btn.innerHTML='<span class="spinner"></span>Signing in...'; btn.disabled=true;
+
+  if(DEMO_MODE){
+    await delay(1000);
+    btn.innerHTML='Log In'; btn.disabled=false;
+    closeModal(); setUserUI(email.split('@')[0]); showPage('paywall');
+    return;
+  }
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  btn.innerHTML='Log In'; btn.disabled=false;
+  if(error){ err.textContent=error.message; err.style.display='block'; return; }
+  closeModal(); await checkUserStatus(data.user);
+}
+
+// ─── USER STATUS ───
+async function checkUserStatus(user){
+  if(!user) return;
+  const name=(user.user_metadata?.full_name||user.email||'Producer').split(' ')[0];
+  setUserUI(name);
+  if(!sb){ showPage('paywall'); return; }
+  const {data}=await sb.from('subscriptions').select('status,plan').eq('user_id',user.id).single();
+  if(data&&(data.status==='active'||data.status==='trialing')) loadDashboard(name,data.plan||'Standard');
+  else showPage('paywall');
+}
+
+function setUserUI(name){
+  document.getElementById('navRight').innerHTML=`
+    <span style="color:var(--muted);font-size:.875rem;">Hi, ${name} 👋</span>
+    <button class="btn-nav-primary" onclick="showPage('dashboard')">My Studio</button>
+  `;
+}
+
+function loadDashboard(name,plan){
+  document.getElementById('dashName').textContent=name;
+  document.getElementById('dashPlan').textContent=plan+' Plan';
+  document.getElementById('dashPlan2').textContent=plan;
+  const next=new Date(); next.setMonth(next.getMonth()+1);
+  document.getElementById('nextBilling').textContent=next.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  showPage('dashboard');
+}
+
+// ─── SIGN OUT ───
+async function handleSignOut(){
+  if(sb) await sb.auth.signOut();
+  document.getElementById('navRight').innerHTML=`
+    <a href="#" class="btn-nav-ghost" onclick="event.preventDefault();openModal('login')">Log In</a>
+    <a href="#" class="btn-nav-primary" onclick="event.preventDefault();openModal('signup')">Get Started</a>
+  `;
+  showPage('landing');
+  showToast('Signed out successfully ✓','success');
+}
+
+// ─── PAYWALL ───
+let selectedPlan='monthly';
+function selectPlan(plan){
+  selectedPlan=plan;
+  document.getElementById('planMonthly').classList.toggle('selected',plan==='monthly');
+  document.getElementById('planOneTime').classList.toggle('selected',plan==='onetime');
+}
+function handleCheckout(){
+  const link=selectedPlan==='monthly'?STRIPE_MONTHLY_LINK:STRIPE_ONETIME_LINK;
+  if(DEMO_MODE||link.startsWith('YOUR_')){
+    showToast('Stripe not connected yet — loading dashboard in demo mode 🎛️','success');
+    setTimeout(()=>loadDashboard(document.getElementById('dashName').textContent||'Penny','Standard'),1500);
+    return;
+  }
+  window.location.href=link;
+}
+
+// ─── FILE HANDLING ───
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('dropZone').style.borderColor='';
+  const file=e.dataTransfer.files[0];
+  if(file) processAudioFile(file);
+}
+function handleFileSelect(e){ const f=e.target.files[0]; if(f) processAudioFile(f); }
+function processAudioFile(file){
+  document.getElementById('eqStatus').textContent='Analyzing...';
+  document.getElementById('eqStatus').style.color='var(--accent)';
+  document.getElementById('dropZone').innerHTML=`
+    <div style="font-size:2rem;margin-bottom:.75rem">🎵</div>
+    <p style="color:var(--accent);font-weight:600">${file.name}</p>
+    <p style="color:var(--muted);font-size:.8rem">AI analysis running...</p>
+  `;
+  setTimeout(()=>{
+    document.getElementById('eqStatus').textContent='Master Ready ✓';
+    document.getElementById('eqStatus').style.color='var(--success)';
+    showToast('✓ Master chain generated for '+file.name,'success');
+    eqEl.querySelectorAll('.dash-eq-bar').forEach(b=>{ b.style.height=(10+Math.random()*90)+'px'; });
+  },2000);
+}
+
+// ─── TOAST ───
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${type} show`;
+  setTimeout(()=>t.classList.remove('show'),4000);
+}
+
+// ─── HELPERS ───
+function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ─── SUPABASE SESSION CHECK ───
+if(sb){
+  sb.auth.onAuthStateChange(async(_,session)=>{ if(session?.user) await checkUserStatus(session.user); });
+}
+</script>
+</body>
+</html>
