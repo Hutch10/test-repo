@@ -665,10 +665,23 @@ async function handleLogin(e){
     closeModal(); setUserUI(email.split('@')[0]); showPage('paywall');
     return;
   }
-  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
-  btn.innerHTML='Log In'; btn.disabled=false;
-  if(error){ err.textContent=error.message; err.style.display='block'; return; }
-  closeModal(); await checkUserStatus(data.user);
+
+  try {
+    const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+    btn.innerHTML='Log In'; btn.disabled=false;
+    if(error){ 
+      console.error('Login Error:', error.message);
+      err.textContent=error.message; 
+      err.style.display='block'; 
+      return; 
+    }
+    closeModal(); await checkUserStatus(data.user);
+  } catch(e) {
+    console.error('Login Exception:', e);
+    btn.innerHTML='Log In'; btn.disabled=false;
+    err.textContent='Connection error. Please try again.';
+    err.style.display='block';
+  }
 }
 
 // ─── USER STATUS ───
