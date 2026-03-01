@@ -636,17 +636,28 @@ async function handleSignup(e){
   err.style.display='none'; suc.style.display='none';
   btn.innerHTML='<span class="spinner"></span>Creating account...'; btn.disabled=true;
 
-  if(DEMO_MODE){
-    await delay(1000);
-    btn.innerHTML='Create Account'; btn.disabled=false;
-    closeModal(); setUserUI(name||email.split('@')[0]); showPage('paywall');
-    return;
+  try {
+    if(DEMO_MODE){
+      await delay(1000);
+      closeModal(); setUserUI(name||email.split('@')[0]); showPage('paywall');
+      return;
+    }
+    
+    const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name}}});
+    
+    if(error) throw new Error(error.message);
+    
+    console.log('Signup successful:', data);
+    suc.textContent='Account created! Check your email to confirm, then log in.';
+    suc.style.display='block';
+  } catch(e) {
+    console.error('Signup error:', e.message);
+    err.textContent='Signup failed: '+e.message;
+    err.style.display='block';
+  } finally {
+    btn.innerHTML='Create Account';
+    btn.disabled=false;
   }
-  const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name}}});
-  btn.innerHTML='Create Account'; btn.disabled=false;
-  if(error){ err.textContent=error.message; err.style.display='block'; return; }
-  suc.textContent='Account created! Check your email to confirm, then log in.';
-  suc.style.display='block';
 }
 
 // ─── LOG IN ───
