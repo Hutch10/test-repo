@@ -548,28 +548,22 @@
 
 
 <script>
-// ═══════════════════════════════════════════
-// CONFIG — Penny fills these in after setup
-// ═══════════════════════════════════════════
-const SUPABASE_URL     = 'https://hexzaduzzqpluixwfgdh.supabase.co';
+// 1. Configuration
+const SUPABASE_URL = 'https://hexzaduzzqpluixwfgdh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhleHphZHV6enFwbHVpeHdmZ2RoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA4NzA1NDcsImV4cCI6MjA1NjQ0NjU0N30.8H7H4x2BwYvBv7n0h5-u5m6p7Y8S9T0U1V2W3X4Y5Z6';
-const STRIPE_MONTHLY_LINK = 'https://buy.stripe.com/test_cNI6qG4dg0JV7dLJbaAQ2'; // Stripe payment link URL
-const STRIPE_ONETIME_LINK = 'https://buy.stripe.com/test_9B0aEX3XhaePOeN37S0aeWJ9'; // Stripe payment link URL
+const STRIPE_MONTHLY_LINK = 'https://buy.stripe.com/test_cNI6qG4dg0JV7dLJbaAQ2';
+const STRIPE_ONETIME_LINK = 'https://buy.stripe.com/test_9B0aEX3XhaePOeN37S0aeWJ9';
 
-const DEMO_MODE = SUPABASE_URL === 'YOUR_SUPABASE_URL';
-
-// Init Supabase
+// 2. Initialize Supabase
 let sb = null;
 try {
-  if (typeof supabase !== 'undefined' && SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
-    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('Supabase initialized successfully');
-  } else {
-    console.warn('Running in Demo Mode');
-  }
-} catch(e) {
-  console.error('Supabase Init Error:', e);
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  console.log("NOVA: Supabase connected.");
+} catch (e) {
+  console.error("NOVA: Connection error:", e);
 }
+
+const DEMO_MODE = !sb;
 
 // ─── CURSOR ───
 const curEl = document.getElementById('cursor');
