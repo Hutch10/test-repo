@@ -22,13 +22,16 @@
     --success: #22c55e;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; height: 100%; }
   body {
     background: var(--bg);
     color: var(--text);
     font-family: 'DM Sans', sans-serif;
     overflow-x: hidden;
     cursor: auto;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
   }
 
   /* CURSOR */
@@ -278,6 +281,10 @@
   /* DROP ZONE */
   .drop-zone { border:2px dashed var(--border); border-radius:16px; padding:3rem; text-align:center; margin-bottom:1.5rem; transition:border-color .2s; }
   .drop-zone:hover { border-color:rgba(0,229,255,.4); }
+
+  /* GLOBAL BUTTON & LINK STYLES */
+  button { cursor:pointer; }
+  a { cursor:pointer; }
 
   @media(max-width:900px) {
     nav { padding:1.5rem 2rem; }
