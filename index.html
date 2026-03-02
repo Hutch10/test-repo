@@ -741,6 +741,7 @@ try {
   if (typeof supabase !== 'undefined') {
     sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log('NOVA: Supabase connected.');
+    initStorage();
   } else {
     DEMO_MODE = true;
     console.warn('NOVA: Supabase SDK unavailable. Demo mode enabled.');
@@ -748,6 +749,26 @@ try {
 } catch (error) {
   DEMO_MODE = true;
   console.error('NOVA: Supabase init error:', error);
+}
+
+// Initialize Supabase Storage bucket
+async function initStorage() {
+  if (!sb || DEMO_MODE) return;
+  
+  try {
+    const { data: buckets, error } = await sb.storage.listBuckets();
+    if (error) throw error;
+    
+    const bucketExists = buckets?.some(bucket => bucket.name === 'audio-uploads');
+    
+    if (bucketExists) {
+      console.log('NOVA: Storage bucket "audio-uploads" ready.');
+    } else {
+      console.warn('NOVA: Storage bucket "audio-uploads" not found. Please create it in Supabase Dashboard.');
+    }
+  } catch (error) {
+    console.error('NOVA: Storage init error:', error);
+  }
 }
 
 const eqBarsRoot = document.getElementById('eqBars');
@@ -936,7 +957,7 @@ async function handleSignOut() {
   showToast('Signed out.','success');
 }
 
-function processAudioFile(file) {
+async function processAudioFile(file) {
   const eqStatus = document.getElementById('eqStatus');
   const dropZone = document.getElementById('dropZone');
 
@@ -958,13 +979,13 @@ function processAudioFile(file) {
     return;
   }
 
-  eqStatus.textContent = 'Processing...';
+  eqStatus.textContent = 'Uploading...';
   eqStatus.style.color = '#00e5ff';
 
   dropZone.innerHTML = `
     <div style="font-size:2rem;">🎵</div>
     <p style="color:#00e5ff;font-weight:700;">${file.name}</p>
-    <p style="font-size:.85rem;color:var(--muted);margin-bottom:0.5rem;">Master Assistant is building your chain...</p>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:0.5rem;">Uploading to cloud storage...</p>
     <div class="progress-container">
       <div class="progress-bar" id="progressBar" style="width:0%;">0%</div>
     </div>
@@ -972,42 +993,84 @@ function processAudioFile(file) {
     <input id="audioInput" type="file" accept=".wav,.mp3,audio/wav,audio/mpeg" style="display:none;" onchange="handleFileSelect(event)" />
   `;
 
-  // Animate progress bar from 0% to 100%
-  let progress = 0;
   const progressBar = document.getElementById('progressBar');
-  const progressInterval = setInterval(() => {
-    progress += 5;
-    if (progress <= 100) {
-      progressBar.style.width = `${progress}%`;
-      progressBar.textContent = `${progress}%`;
-    }
+  
+  try {
+    // Simulate progress during upload
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+      if (progress < 90) {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90;
+        progressBar.style.width = `${Math.floor(progress)}%`;
+        progressBar.textContent = `${Math.floor(progress)}%`;
+      }
+    }, 200);
+
+    animateEQBars();
+    const eqInterval = setInterval(() => animateEQBars(), 400);
+
+    // Upload to Supabase Storage
+    let uploadPath = '';
     
-    if (progress >= 100) {
-      clearInterval(progressInterval);
+    if (sb && !DEMO_MODE) {
+      const timestamp = Date.now();
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      uploadPath = `uploads/${timestamp}_${sanitizedName}`;
+      
+      const { data, error } = await sb.storage
+        .from('audio-uploads')
+        .upload(uploadPath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) throw error;
+      
+      console.log('NOVA: File uploaded successfully:', data.path);
+    } else {
+      // Demo mode - simulate upload delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      uploadPath = `demo/uploads/${file.name}`;
     }
-  }, 80);
 
-  animateEQBars();
-  setTimeout(() => animateEQBars(), 400);
-  setTimeout(() => animateEQBars(), 800);
-  setTimeout(() => animateEQBars(), 1200);
+    // Complete progress bar
+    clearInterval(progressInterval);
+    clearInterval(eqInterval);
+    progressBar.style.width = '100%';
+    progressBar.textContent = '100%';
 
-  setTimeout(() => {
-    eqStatus.textContent = 'Master Ready ✓';
+    // Update status
+    eqStatus.textContent = 'Upload Complete ✓';
     eqStatus.style.color = '#22c55e';
     animateEQBars();
-    showToast(`Master chain generated for ${file.name}`, 'success');
+    showToast(`Uploaded: ${file.name}`, 'success');
     
-    // Show download button
+    // Show success state with download placeholder
     dropZone.innerHTML = `
       <div style="font-size:2rem;">✓</div>
       <p style="color:#22c55e;font-weight:700;">${file.name}</p>
-      <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;">Mastering complete!</p>
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:0.5rem;">Stored at: ${uploadPath}</p>
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;">Ready for processing!</p>
       <button class="btn btn-primary" type="button" onclick="alert('Processing complete!')" style="margin-bottom:0.5rem;">Download Mastered Version</button>
-      <button class="btn btn-ghost" type="button" onclick="document.getElementById('audioInput').click()">Process Another File</button>
+      <button class="btn btn-ghost" type="button" onclick="document.getElementById('audioInput').click()">Upload Another File</button>
       <input id="audioInput" type="file" accept=".wav,.mp3,audio/wav,audio/mpeg" style="display:none;" onchange="handleFileSelect(event)" />
     `;
-  }, 2000);
+  } catch (error) {
+    console.error('NOVA: Upload error:', error);
+    eqStatus.textContent = 'Upload Failed';
+    eqStatus.style.color = '#ef4444';
+    showToast(`Upload failed: ${error.message}`, 'error');
+    
+    // Reset drop zone
+    dropZone.innerHTML = `
+      <div style="font-size:2rem;">⚠️</div>
+      <p style="color:#ef4444;font-weight:700;">Upload Failed</p>
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;">${error.message}</p>
+      <button class="btn btn-primary" type="button" onclick="document.getElementById('audioInput').click()">Try Again</button>
+      <input id="audioInput" type="file" accept=".wav,.mp3,audio/wav,audio/mpeg" style="display:none;" onchange="handleFileSelect(event)" />
+    `;
+  }
 }
 
 function handleFileSelect(event) {
