@@ -455,6 +455,8 @@
   .toast.error { border-color: rgba(239, 68, 68, 0.45); color: #ff7f7f; }
   .toast.success { border-color: rgba(34, 197, 94, 0.45); color: #79f7a2; }
 
+  .hidden { display: none !important; }
+
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -620,7 +622,7 @@
 
   <div class="toast" id="toast"></div>
 
-  <div class="modal-overlay" id="authModal">
+  <div class="modal-overlay hidden" id="auth-modal">
     <div class="modal">
       <div class="modal-header">
         <h3 id="modalTitle">Welcome back</h3>
@@ -834,8 +836,14 @@
 
 <script>
 // 1) Configuration
-const SUPABASE_URL = 'https://hexzaduzzqpluixwfgdh.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhleHphZHV6enFwbHVpeHdmZ2RoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMzk5ODMsImV4cCI6MjA4NzkxNTk4M30.WEb7BoaTozBD2IswTJRll2k1zZBrPxXz6kQ_e8AlLy4';
+const SUPABASE_URL =
+  (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_SUPABASE_URL) ||
+  (typeof window !== 'undefined' && window.NEXT_PUBLIC_SUPABASE_URL) ||
+  'https://hexzaduzzqpluixwfgdh.supabase.co';
+const SUPABASE_ANON_KEY =
+  (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+  (typeof window !== 'undefined' && window.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhleHphZHV6enFwbHVpeHdmZ2RoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMzk5ODMsImV4cCI6MjA4NzkxNTk4M30.WEb7BoaTozBD2IswTJRll2k1zZBrPxXz6kQ_e8AlLy4';
 
 const STRIPE_ELEMENTS_LINK = 'https://buy.stripe.com/test_9B6aEX87HaePeAN3758ww03';
 const STRIPE_STANDARD_LINK = 'https://buy.stripe.com/test_cNI6qG4dg0JV7dLJbaAQ2';
@@ -1278,13 +1286,23 @@ function showPage(name) {
   }
 }
 
+function getAuthModalEl() {
+  return document.getElementById('auth-modal') || document.getElementById('authModal');
+}
+
 function openModal(tab = 'login') {
-  document.getElementById('authModal').classList.add('open');
+  const modal = getAuthModalEl();
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  modal.classList.add('open');
   switchTab(tab);
 }
 
 function closeModal() {
-  document.getElementById('authModal').classList.remove('open');
+  const modal = getAuthModalEl();
+  if (!modal) return;
+  modal.classList.remove('open');
+  modal.classList.add('hidden');
 }
 
 function switchTab(tab) {
@@ -1299,8 +1317,8 @@ function switchTab(tab) {
   title.textContent = isLogin ? 'Welcome back' : 'Create your NOVA account';
 }
 
-document.getElementById('authModal').addEventListener('click', (e) => {
-  if (e.target.id === 'authModal') closeModal();
+getAuthModalEl()?.addEventListener('click', (e) => {
+  if (e.target.id === 'auth-modal' || e.target.id === 'authModal') closeModal();
 });
 
 function setUserUI(name) {
