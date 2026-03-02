@@ -382,6 +382,29 @@
     transition: height 0.25s ease;
   }
 
+  .progress-container {
+    width: 100%;
+    height: 24px;
+    background: rgba(0, 229, 255, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    overflow: hidden;
+    margin: 1rem 0;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    border-radius: 12px;
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #001014;
+  }
+
   .status-pill {
     display: inline-block;
     border-radius: 999px;
@@ -917,27 +940,74 @@ function processAudioFile(file) {
   const eqStatus = document.getElementById('eqStatus');
   const dropZone = document.getElementById('dropZone');
 
-  eqStatus.textContent = 'Analyzing...';
+  // File validation
+  const maxSize = 50 * 1024 * 1024; // 50MB
+  const allowedFormats = ['audio/wav', 'audio/mpeg', 'audio/mp3'];
+  const allowedExtensions = ['.wav', '.mp3'];
+  
+  const fileExtension = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+  const isValidFormat = allowedFormats.includes(file.type) || allowedExtensions.includes(fileExtension);
+  
+  if (file.size > maxSize) {
+    showToast('File too large. Maximum size is 50MB.', 'error');
+    return;
+  }
+  
+  if (!isValidFormat) {
+    showToast('Invalid format. Please upload WAV or MP3 files only.', 'error');
+    return;
+  }
+
+  eqStatus.textContent = 'Processing...';
   eqStatus.style.color = '#00e5ff';
 
   dropZone.innerHTML = `
     <div style="font-size:2rem;">🎵</div>
     <p style="color:#00e5ff;font-weight:700;">${file.name}</p>
-    <p style="font-size:.85rem;color:var(--muted);">Master Assistant is building your chain...</p>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:0.5rem;">Master Assistant is building your chain...</p>
+    <div class="progress-container">
+      <div class="progress-bar" id="progressBar" style="width:0%;">0%</div>
+    </div>
     <button class="btn btn-ghost" type="button" style="margin-top:.7rem;" onclick="document.getElementById('audioInput').click()">Browse Another File</button>
-    <input id="audioInput" type="file" accept="audio/*" style="display:none;" onchange="handleFileSelect(event)" />
+    <input id="audioInput" type="file" accept=".wav,.mp3,audio/wav,audio/mpeg" style="display:none;" onchange="handleFileSelect(event)" />
   `;
+
+  // Animate progress bar from 0% to 100%
+  let progress = 0;
+  const progressBar = document.getElementById('progressBar');
+  const progressInterval = setInterval(() => {
+    progress += 5;
+    if (progress <= 100) {
+      progressBar.style.width = `${progress}%`;
+      progressBar.textContent = `${progress}%`;
+    }
+    
+    if (progress >= 100) {
+      clearInterval(progressInterval);
+    }
+  }, 80);
 
   animateEQBars();
   setTimeout(() => animateEQBars(), 400);
   setTimeout(() => animateEQBars(), 800);
+  setTimeout(() => animateEQBars(), 1200);
 
   setTimeout(() => {
     eqStatus.textContent = 'Master Ready ✓';
     eqStatus.style.color = '#22c55e';
     animateEQBars();
-    showToast(`Master chain generated for ${file.name}`,'success');
-  }, 1400);
+    showToast(`Master chain generated for ${file.name}`, 'success');
+    
+    // Show download button
+    dropZone.innerHTML = `
+      <div style="font-size:2rem;">✓</div>
+      <p style="color:#22c55e;font-weight:700;">${file.name}</p>
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;">Mastering complete!</p>
+      <button class="btn btn-primary" type="button" onclick="alert('Processing complete!')" style="margin-bottom:0.5rem;">Download Mastered Version</button>
+      <button class="btn btn-ghost" type="button" onclick="document.getElementById('audioInput').click()">Process Another File</button>
+      <input id="audioInput" type="file" accept=".wav,.mp3,audio/wav,audio/mpeg" style="display:none;" onchange="handleFileSelect(event)" />
+    `;
+  }, 2000);
 }
 
 function handleFileSelect(event) {
