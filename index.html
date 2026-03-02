@@ -736,6 +736,7 @@ const STRIPE_STANDARD_LINK = 'https://buy.stripe.com/test_cNI6qG4dg0JV7dLJbaAQ2'
 
 let sb = null;
 let DEMO_MODE = false;
+let currentUser = null; // Track authenticated user
 
 try {
   if (typeof supabase !== 'undefined') {
@@ -968,6 +969,15 @@ function showToast(message, type = 'success') {
 }
 
 function showPage(name) {
+  // Auth Guard: Protect dashboard from unauthenticated access
+  if (name === 'dashboard' && !currentUser) {
+    console.warn('NOVA: Access denied. User not authenticated.');
+    showToast('Please log in to access the studio.', 'error');
+    showPage('landing');
+    openModal('login');
+    return;
+  }
+  
   document.querySelectorAll('.page').forEach((page) => page.classList.remove('active'));
   const target = document.getElementById(`page-${name}`);
   if (target) {
@@ -1002,6 +1012,7 @@ document.getElementById('authModal').addEventListener('click', (e) => {
 });
 
 function setUserUI(name) {
+  currentUser = { name }; // Track authenticated user
   const navActions = document.getElementById('navActions');
   navActions.innerHTML = `
     <span style="color:var(--muted);font-size:.92rem;">Hi, ${name} 👋</span>
@@ -1032,6 +1043,7 @@ async function handleSignup(event) {
   try {
     if (DEMO_MODE || !sb) {
       await new Promise((resolve) => setTimeout(resolve, 700));
+      currentUser = { name: name || email.split('@')[0] }; // Track user
       setUserUI(name || email.split('@')[0]);
       closeModal();
       showPage('dashboard');
@@ -1078,6 +1090,7 @@ async function handleLogin(event) {
   try {
     if (DEMO_MODE || !sb) {
       await new Promise((resolve) => setTimeout(resolve, 700));
+      currentUser = { name: email.split('@')[0] }; // Track user
       setUserUI(email.split('@')[0]);
       closeModal();
       showPage('dashboard');
@@ -1090,6 +1103,7 @@ async function handleLogin(event) {
 
     const fallbackName = email.split('@')[0];
     const profileName = data?.user?.user_metadata?.full_name || fallbackName;
+    currentUser = { name: profileName.split(' ')[0] }; // Track user
     setUserUI(profileName.split(' ')[0]);
     closeModal();
     showPage('dashboard');
@@ -1114,6 +1128,7 @@ async function handleSignOut() {
     console.error('Sign out error:', error);
   }
 
+  currentUser = null; // Clear authenticated user
   document.getElementById('navActions').innerHTML = `
     <a href="#" class="btn btn-ghost" onclick="event.preventDefault();openModal('login')">Log In</a>
     <a href="#" class="btn btn-primary" onclick="event.preventDefault();openModal('signup')">Get Started</a>
@@ -1126,6 +1141,31 @@ async function handleSignOut() {
 async function processAudioFile(file) {
   const eqStatus = document.getElementById('eqStatus');
   const dropZone = document.getElementById('dropZone');
+
+  // Upload Protection: Verify user is authenticated
+  if (!currentUser) {
+    showToast('Authentication required. Please log in.', 'error');
+    openModal('login');
+    return;
+  }
+  
+  // Secondary verification with Supabase session
+  if (sb && !DEMO_MODE) {
+    try {
+      const { data, error } = await sb.auth.getSession();
+      if (error || !data?.session?.user) {
+        showToast('Session expired. Please log in again.', 'error');
+        currentUser = null;
+        openModal('login');
+        return;
+      }
+    } catch (error) {
+      console.error('Session check error:', error);
+      showToast('Cannot verify session. Please log in.', 'error');
+      openModal('login');
+      return;
+    }
+  }
 
   // File validation
   const maxSize = 50 * 1024 * 1024; // 50MB
@@ -1312,6 +1352,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const user = data?.session?.user;
       if (user) {
         const name = (user.user_metadata?.full_name || user.email || 'Producer').split(' ')[0];
+        currentUser = { name }; // Track user from session
         setUserUI(name);
         showPage('dashboard');
       }
@@ -1319,7 +1360,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       sb.auth.onAuthStateChange((_event, session) => {
         if (session?.user) {
           const name = (session.user.user_metadata?.full_name || session.user.email || 'Producer').split(' ')[0];
+          currentUser = { name }; // Track user from state change
           setUserUI(name);
+        } else {
+          currentUser = null; // Clear user on logout
         }
       });
     } catch (error) {
