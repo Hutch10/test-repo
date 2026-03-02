@@ -771,6 +771,131 @@ async function initStorage() {
   }
 }
 
+// Web Audio API setup
+let audioContext = null;
+let analyserNode = null;
+let frequencyData = null;
+let animationFrameId = null;
+
+function initAudioContext() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    console.log('NOVA: AudioContext initialized.');
+  }
+  return audioContext;
+}
+
+// Soft-clip limiter using wave shaper
+function createSoftClipper(context) {
+  const clipper = context.createWaveShaper();
+  const samples = 1024;
+  const curve = new Float32Array(samples);
+  const threshold = 0.8;
+  
+  for (let i = 0; i < samples; i++) {
+    const x = (i / samples) * 2 - 1;
+    // Soft clipping formula: tanh-based for smooth saturation
+    if (Math.abs(x) < threshold) {
+      curve[i] = x;
+    } else {
+      const sign = x > 0 ? 1 : -1;
+      curve[i] = sign * (threshold + (1 - threshold) * Math.tanh((Math.abs(x) - threshold) / (1 - threshold)));
+    }
+  }
+  
+  clipper.curve = curve;
+  clipper.oversample = '4x';
+  return clipper;
+}
+
+// High-shelf boost for professional shimmer
+function createHighShelf(context) {
+  const shelf = context.createBiquadFilter();
+  shelf.type = 'highshelf';
+  shelf.frequency.value = 8000; // 8kHz and above
+  shelf.gain.value = 3; // +3dB boost for airiness
+  shelf.Q.value = 0.7;
+  return shelf;
+}
+
+// Master audio processing chain
+async function masterAudio(audioBuffer) {
+  const ctx = initAudioContext();
+  
+  // Create offline context for processing
+  const offlineCtx = new OfflineAudioContext(
+    audioBuffer.numberOfChannels,
+    audioBuffer.length,
+    audioBuffer.sampleRate
+  );
+  
+  // Source
+  const source = offlineCtx.createBufferSource();
+  source.buffer = audioBuffer;
+  
+  // Processing chain
+  const highShelf = createHighShelf(offlineCtx);
+  const softClipper = createSoftClipper(offlineCtx);
+  const gainNode = offlineCtx.createGain();
+  gainNode.gain.value = 1.2; // Slight volume boost
+  
+  // Connect: source → gain → highShelf → softClipper → destination
+  source.connect(gainNode);
+  gainNode.connect(highShelf);
+  highShelf.connect(softClipper);
+  softClipper.connect(offlineCtx.destination);
+  
+  source.start(0);
+  
+  // Process and return mastered buffer
+  return await offlineCtx.startRendering();
+}
+
+// Convert AudioBuffer to downloadable WAV blob
+function audioBufferToWav(buffer) {
+  const length = buffer.length * buffer.numberOfChannels * 2;
+  const arrayBuffer = new ArrayBuffer(44 + length);
+  const view = new DataView(arrayBuffer);
+  
+  // WAV header
+  const writeString = (offset, string) => {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  };
+  
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + length, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, buffer.numberOfChannels, true);
+  view.setUint32(24, buffer.sampleRate, true);
+  view.setUint32(28, buffer.sampleRate * buffer.numberOfChannels * 2, true);
+  view.setUint16(32, buffer.numberOfChannels * 2, true);
+  view.setUint16(34, 16, true);
+  writeString(36, 'data');
+  view.setUint32(40, length, true);
+  
+  // Interleave channels and write PCM samples
+  const channels = [];
+  for (let i = 0; i < buffer.numberOfChannels; i++) {
+    channels.push(buffer.getChannelData(i));
+  }
+  
+  let offset = 44;
+  for (let i = 0; i < buffer.length; i++) {
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      const sample = Math.max(-1, Math.min(1, channels[channel][i]));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+      offset += 2;
+    }
+  }
+  
+  return new Blob([arrayBuffer], { type: 'audio/wav' });
+}
+
 const eqBarsRoot = document.getElementById('eqBars');
 const eqColors = ['#00e5ff', '#20d6ff', '#56c6ff', '#7cb5ff', '#a855f7'];
 
@@ -791,6 +916,47 @@ function animateEQBars() {
   eqBarsRoot.querySelectorAll('.eq-bar').forEach((bar) => {
     bar.style.height = `${10 + Math.random() * 96}px`;
   });
+}
+
+// Real-time frequency visualization
+function visualizeFrequencies(analyser) {
+  if (!analyser || !eqBarsRoot) return;
+  
+  const bufferLength = analyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+  const bars = eqBarsRoot.querySelectorAll('.eq-bar');
+  
+  const animate = () => {
+    animationFrameId = requestAnimationFrame(animate);
+    analyser.getByteFrequencyData(dataArray);
+    
+    // Map frequency data to 30 bars
+    const barCount = bars.length;
+    const step = Math.floor(bufferLength / barCount);
+    
+    bars.forEach((bar, i) => {
+      const start = i * step;
+      const end = start + step;
+      let sum = 0;
+      
+      for (let j = start; j < end && j < bufferLength; j++) {
+        sum += dataArray[j];
+      }
+      
+      const average = sum / step;
+      const height = Math.max(8, (average / 255) * 106);
+      bar.style.height = `${height}px`;
+    });
+  };
+  
+  animate();
+}
+
+function stopVisualization() {
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
 }
 
 function showToast(message, type = 'success') {
@@ -979,6 +1145,9 @@ async function processAudioFile(file) {
     return;
   }
 
+  // Stop any existing visualization
+  stopVisualization();
+  
   eqStatus.textContent = 'Uploading...';
   eqStatus.style.color = '#00e5ff';
 
@@ -996,16 +1165,16 @@ async function processAudioFile(file) {
   const progressBar = document.getElementById('progressBar');
   
   try {
-    // Simulate progress during upload
+    // Phase 1: Upload (0-40%)
     let progress = 0;
     const progressInterval = setInterval(() => {
-      if (progress < 90) {
-        progress += Math.random() * 15;
-        if (progress > 90) progress = 90;
+      if (progress < 35) {
+        progress += Math.random() * 8;
+        if (progress > 35) progress = 35;
         progressBar.style.width = `${Math.floor(progress)}%`;
         progressBar.textContent = `${Math.floor(progress)}%`;
       }
-    }, 200);
+    }, 150);
 
     animateEQBars();
     const eqInterval = setInterval(() => animateEQBars(), 400);
@@ -1029,47 +1198,95 @@ async function processAudioFile(file) {
       
       console.log('NOVA: File uploaded successfully:', data.path);
     } else {
-      // Demo mode - simulate upload delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 800));
       uploadPath = `demo/uploads/${file.name}`;
     }
 
-    // Complete progress bar
+    // Phase 2: Decoding (40-60%)
     clearInterval(progressInterval);
+    progressBar.style.width = '40%';
+    progressBar.textContent = '40%';
+    eqStatus.textContent = 'Decoding audio...';
+    
+    const ctx = initAudioContext();
+    const arrayBuffer = await file.arrayBuffer();
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+    
+    progressBar.style.width = '60%';
+    progressBar.textContent = '60%';
+    
+    // Phase 3: Mastering (60-90%)
+    eqStatus.textContent = 'Applying mastering chain...';
+    
+    // Create analyser for visualization
+    const source = ctx.createBufferSource();
+    source.buffer = audioBuffer;
+    
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
+    analyser.connect(ctx.destination);
+    
+    // Start visualization with original audio
+    visualizeFrequencies(analyser);
+    source.start(0);
+    
+    progressBar.style.width = '70%';
+    progressBar.textContent = '70%';
+    
+    // Apply mastering
+    const masteredBuffer = await masterAudio(audioBuffer);
+    
     clearInterval(eqInterval);
+    progressBar.style.width = '90%';
+    progressBar.textContent = '90%';
+    
+    // Phase 4: Encoding (90-100%)
+    eqStatus.textContent = 'Encoding mastered file...';
+    
+    const wavBlob = audioBufferToWav(masteredBuffer);
+    const downloadUrl = URL.createObjectURL(wavBlob);
+    const masteredFileName = file.name.replace(/\.(wav|mp3)$/i, '_MASTERED.wav');
+    
     progressBar.style.width = '100%';
     progressBar.textContent = '100%';
 
-    // Update status
-    eqStatus.textContent = 'Upload Complete ✓';
+    // Complete!
+    eqStatus.textContent = 'Mastering Complete ✓';
     eqStatus.style.color = '#22c55e';
-    animateEQBars();
-    showToast(`Uploaded: ${file.name}`, 'success');
+    showToast(`Mastered: ${file.name}`, 'success');
     
-    // Show success state with download placeholder
+    // Show download button with real blob URL
     dropZone.innerHTML = `
       <div style="font-size:2rem;">✓</div>
       <p style="color:#22c55e;font-weight:700;">${file.name}</p>
       <p style="font-size:.85rem;color:var(--muted);margin-bottom:0.5rem;">Stored at: ${uploadPath}</p>
-      <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;">Ready for processing!</p>
-      <button class="btn btn-primary" type="button" onclick="alert('Processing complete!')" style="margin-bottom:0.5rem;">Download Mastered Version</button>
-      <button class="btn btn-ghost" type="button" onclick="document.getElementById('audioInput').click()">Upload Another File</button>
+      <p style="font-size:.85rem;color:#a855f7;margin-bottom:1rem;">🎛️ Soft-Clip Limiter + High-Shelf Boost Applied</p>
+      <a href="${downloadUrl}" download="${masteredFileName}" class="btn btn-primary" style="margin-bottom:0.5rem;text-decoration:none;">Download Mastered Version</a>
+      <button class="btn btn-ghost" type="button" onclick="document.getElementById('audioInput').click()">Master Another File</button>
       <input id="audioInput" type="file" accept=".wav,.mp3,audio/wav,audio/mpeg" style="display:none;" onchange="handleFileSelect(event)" />
     `;
+    
+    console.log('NOVA: Mastering complete. Download ready.');
   } catch (error) {
-    console.error('NOVA: Upload error:', error);
-    eqStatus.textContent = 'Upload Failed';
+    console.error('NOVA: Processing error:', error);
+    stopVisualization();
+    eqStatus.textContent = 'Processing Failed';
     eqStatus.style.color = '#ef4444';
-    showToast(`Upload failed: ${error.message}`, 'error');
+    showToast(`Processing failed: ${error.message}`, 'error');
     
     // Reset drop zone
     dropZone.innerHTML = `
       <div style="font-size:2rem;">⚠️</div>
-      <p style="color:#ef4444;font-weight:700;">Upload Failed</p>
+      <p style="color:#ef4444;font-weight:700;">Processing Failed</p>
       <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;">${error.message}</p>
       <button class="btn btn-primary" type="button" onclick="document.getElementById('audioInput').click()">Try Again</button>
       <input id="audioInput" type="file" accept=".wav,.mp3,audio/wav,audio/mpeg" style="display:none;" onchange="handleFileSelect(event)" />
     `;
+    
+    // Restore random animation
+    const restoreInterval = setInterval(() => animateEQBars(), 400);
+    setTimeout(() => clearInterval(restoreInterval), 5000);
   }
 }
 
