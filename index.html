@@ -28,7 +28,7 @@
     color: var(--text);
     font-family: 'DM Sans', sans-serif;
     overflow-x: hidden;
-    cursor: none;
+    cursor: auto;
   }
 
   /* CURSOR */
@@ -64,7 +64,7 @@
   .logo {
     font-family:'Syne',sans-serif; font-size:1.6rem; font-weight:800;
     background:linear-gradient(135deg,#fff 30%,var(--accent));
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent; cursor:none;
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; cursor:pointer;
   }
   .logo span { -webkit-text-fill-color:var(--accent); }
   .nav-links { display:flex; gap:2.5rem; list-style:none; }
@@ -74,13 +74,13 @@
   .btn-nav-ghost {
     background:transparent; color:var(--text); font-weight:500;
     font-size:.875rem; padding:.5rem 1.2rem; border-radius:100px;
-    border:1px solid var(--border); cursor:none; transition:border-color .2s; text-decoration:none;
+    border:1px solid var(--border); cursor:pointer; transition:border-color .2s; text-decoration:none;
   }
   .btn-nav-ghost:hover { border-color:rgba(255,255,255,.3); }
   .btn-nav-primary {
     background:var(--accent); color:#000; font-weight:700;
     font-size:.875rem; padding:.55rem 1.4rem; border-radius:100px;
-    border:none; cursor:none; transition:box-shadow .3s, transform .2s; text-decoration:none;
+    border:none; cursor:pointer; transition:box-shadow .3s, transform .2s; text-decoration:none;
   }
   .btn-nav-primary:hover { box-shadow:0 0 20px rgba(0,229,255,.5); transform:translateY(-1px); }
 
@@ -128,13 +128,13 @@
   .btn-primary {
     background:linear-gradient(135deg,var(--accent),#0090a8); color:#000;
     font-weight:700; font-size:1rem; padding:.9rem 2.2rem; border-radius:100px;
-    text-decoration:none; border:none; cursor:none; transition:transform .2s,box-shadow .3s;
+    text-decoration:none; border:none; cursor:pointer; transition:transform .2s,box-shadow .3s;
   }
   .btn-primary:hover { transform:translateY(-2px); box-shadow:0 12px 40px rgba(0,229,255,.4); }
   .btn-ghost {
     background:transparent; color:var(--text); font-weight:500; font-size:1rem;
     padding:.9rem 2.2rem; border-radius:100px; text-decoration:none;
-    border:1px solid var(--border); cursor:none; transition:border-color .2s, background .2s;
+    border:1px solid var(--border); cursor:pointer; transition:border-color .2s, background .2s;
   }
   .btn-ghost:hover { border-color:rgba(255,255,255,.3); background:rgba(255,255,255,.05); }
 
@@ -180,7 +180,7 @@
   .plan-features li { font-size:.9rem; color:var(--muted); padding:.5rem 0; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:.6rem; }
   .plan-features li:last-child { border-bottom:none; }
   .plan-features li::before { content:'✓'; color:var(--accent); font-weight:700; }
-  .plan-btn { display:block; text-align:center; padding:.85rem; border-radius:100px; font-weight:600; font-size:.95rem; text-decoration:none; cursor:none; border:none; transition:all .2s; width:100%; font-family:'DM Sans',sans-serif; }
+  .plan-btn { display:block; text-align:center; padding:.85rem; border-radius:100px; font-weight:600; font-size:.95rem; text-decoration:none; cursor:pointer; border:none; transition:all .2s; width:100%; font-family:'DM Sans',sans-serif; }
   .plan-btn-outline { border:1px solid var(--border)!important; color:var(--text); background:transparent; }
   .plan-btn-outline:hover { border-color:var(--accent)!important; color:var(--accent); }
   .plan-btn-filled { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#000; }
@@ -196,7 +196,7 @@
   footer { background:var(--surface); border-top:1px solid var(--border); padding:4rem; display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:3rem; }
   .footer-brand p { color:var(--muted); font-size:.9rem; margin-top:1rem; line-height:1.6; max-width:260px; font-weight:300; }
   .footer-col h5 { font-family:'Syne',sans-serif; font-weight:700; font-size:.875rem; margin-bottom:1.25rem; letter-spacing:.05em; }
-  .footer-col a { display:block; color:var(--muted); font-size:.875rem; text-decoration:none; margin-bottom:.6rem; transition:color .2s; cursor:none; }
+  .footer-col a { display:block; color:var(--muted); font-size:.875rem; text-decoration:none; margin-bottom:.6rem; transition:color .2s; cursor:pointer; }
   .footer-col a:hover { color:var(--text); }
   .footer-bottom { background:var(--surface); border-top:1px solid var(--border); padding:1.5rem 4rem; display:flex; justify-content:space-between; align-items:center; font-size:.8rem; color:var(--muted); }
 
@@ -204,12 +204,12 @@
   .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(8px); z-index:500; align-items:center; justify-content:center; }
   .modal-overlay.open { display:flex; }
   .modal { background:var(--surface); border:1px solid var(--border); border-radius:24px; padding:3rem; width:100%; max-width:440px; position:relative; animation:fadeUp .3s ease; }
-  .modal-close { position:absolute; top:1rem; right:1.25rem; background:none; border:none; color:var(--muted); font-size:1.4rem; cursor:none; transition:color .2s; }
+  .modal-close { position:absolute; top:1rem; right:1.25rem; background:none; border:none; color:var(--muted); font-size:1.4rem; cursor:pointer; transition:color .2s; }
   .modal-close:hover { color:var(--text); }
   .modal h2 { font-family:'Syne',sans-serif; font-size:1.8rem; font-weight:800; margin-bottom:.5rem; }
   .modal p.modal-sub { color:var(--muted); font-size:.95rem; margin-bottom:2rem; }
   .modal-tabs { display:flex; gap:0; margin-bottom:2rem; background:var(--bg); border-radius:100px; padding:.25rem; }
-  .modal-tab { flex:1; padding:.55rem; text-align:center; border-radius:100px; font-size:.875rem; font-weight:600; cursor:none; border:none; background:transparent; color:var(--muted); transition:all .2s; font-family:'DM Sans',sans-serif; }
+  .modal-tab { flex:1; padding:.55rem; text-align:center; border-radius:100px; font-size:.875rem; font-weight:600; cursor:pointer; border:none; background:transparent; color:var(--muted); transition:all .2s; font-family:'DM Sans',sans-serif; }
   .modal-tab.active { background:var(--accent); color:#000; }
   .form-group { margin-bottom:1.25rem; }
   .form-group label { display:block; font-size:.8rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:.5rem; }
@@ -217,7 +217,7 @@
   .form-group input:focus { border-color:var(--accent); }
   .form-error { color:var(--danger); font-size:.85rem; margin-bottom:.75rem; display:none; }
   .form-success { color:var(--success); font-size:.85rem; margin-bottom:.75rem; display:none; }
-  .form-submit { width:100%; padding:.9rem; border-radius:100px; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#000; font-weight:700; font-size:1rem; border:none; cursor:none; transition:box-shadow .3s, transform .2s; margin-top:.5rem; font-family:'DM Sans',sans-serif; }
+  .form-submit { width:100%; padding:.9rem; border-radius:100px; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#000; font-weight:700; font-size:1rem; border:none; cursor:pointer; transition:box-shadow .3s, transform .2s; margin-top:.5rem; font-family:'DM Sans',sans-serif; }
   .form-submit:hover { box-shadow:0 8px 32px rgba(0,229,255,.35); transform:translateY(-1px); }
 
   /* PAYWALL PAGE */
@@ -227,7 +227,7 @@
   .paywall-page h2 { font-family:'Syne',sans-serif; font-size:2.5rem; font-weight:800; margin-bottom:1rem; }
   .paywall-page > div > p { color:var(--muted); font-size:1.05rem; line-height:1.65; margin-bottom:2.5rem; }
   .paywall-plans { display:grid; grid-template-columns:1fr 1fr; gap:1rem; text-align:left; margin-bottom:2rem; }
-  .paywall-plan { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:1.5rem; cursor:none; transition:border-color .2s; }
+  .paywall-plan { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:1.5rem; cursor:pointer; transition:border-color .2s; }
   .paywall-plan:hover { border-color:rgba(0,229,255,.3); }
   .paywall-plan.selected { border-color:var(--accent); background:rgba(0,229,255,.05); }
   .paywall-plan-name { font-family:'Syne',sans-serif; font-weight:700; font-size:.85rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:.4rem; }
@@ -258,7 +258,7 @@
   .module-list-dash li:last-child { border-bottom:none; }
   .module-dot { width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:.75rem; flex-shrink:0; }
   .module-status { font-size:.75rem; color:var(--success); font-weight:600; }
-  .sign-out-btn { background:transparent; border:1px solid var(--border); color:var(--muted); padding:.6rem 1.4rem; border-radius:100px; cursor:none; font-size:.875rem; font-family:'DM Sans',sans-serif; transition:border-color .2s, color .2s; }
+  .sign-out-btn { background:transparent; border:1px solid var(--border); color:var(--muted); padding:.6rem 1.4rem; border-radius:100px; cursor:pointer; font-size:.875rem; font-family:'DM Sans',sans-serif; transition:border-color .2s, color .2s; }
   .sign-out-btn:hover { border-color:var(--danger); color:var(--danger); }
 
   /* SPINNER */
@@ -470,7 +470,7 @@
       <button class="btn-primary" style="width:100%;padding:1rem;font-size:1.05rem;border:none;" onclick="handleCheckout()">Continue to Checkout →</button>
       <p style="font-size:.8rem;color:var(--muted);margin-top:1rem;">Secured by Stripe. Cancel anytime. No hidden fees.</p>
       <br/>
-      <button onclick="handleSignOut()" style="background:none;border:none;color:var(--muted);font-size:.85rem;cursor:none;text-decoration:underline;font-family:'DM Sans',sans-serif;">Sign out</button>
+      <button onclick="handleSignOut()" style="background:none;border:none;color:var(--muted);font-size:.85rem;cursor:pointer;text-decoration:underline;font-family:'DM Sans',sans-serif;">Sign out</button>
     </div>
   </div>
 </div>
@@ -712,7 +712,7 @@ async function checkUserStatus(user){
 function setUserUI(name){
   document.getElementById('navRight').innerHTML=`
     <span style="color:var(--muted);font-size:.875rem;">Hi, ${name} 👋</span>
-    <button class="btn-nav-primary" onclick="showPage('dashboard')">My Studio</button>
+    <button id="myStudioBtn" class="btn-nav-primary" onclick="showPage('dashboard')">My Studio</button>
   `;
 }
 
@@ -791,6 +791,11 @@ function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
 if(sb){
   sb.auth.onAuthStateChange(async(_,session)=>{ if(session?.user) await checkUserStatus(session.user); });
 }
+
+// ─── PAGE INITIALIZATION ───
+document.addEventListener('DOMContentLoaded', () => {
+  showPage('landing');
+});
 </script>
 </body>
 </html>
